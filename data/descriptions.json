@@ -48,6 +48,14 @@
           "name": "Ara",
           "nickname": "Altar",
           "description": "southern constellation situated between Scorpius and Triangulum Australe."
+        },{
+          "name": "Draco",
+          "nickname": "Dragon",
+          "description": "Draco is circumpolar, meaning that it never sets below the horizon and is always visible in the Northern Hemisphere, but cannot be seen in the Southern Hemisphere."
+        },{
+          "name": "Hydra",
+          "nickname": "Flying Serpent",
+          "description": "Hydra has one bright binary star, Epsilon Hydrae."
         }
     ],
     "stars": [

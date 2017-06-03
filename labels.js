@@ -37,8 +37,10 @@ var Labels = {
 				Array.prototype.forEach.call(document.getElementsByClassName("selected"), function(el) {
 					el.className = el.className.substring(0,el.className.length - 9);
 				});
+
 				if( positiveSelect ){
 					this.className = this.className + " selected";
+					responsiveVoice.speak(name+"! "+description);
 				} else {
 					this.className = this.className.split(" ").filter(function(clazz){ return clazz !== "selected"; }).join(" ");
 				}

@@ -45,8 +45,6 @@ var Constll = {
 					}
 					labels.addLabel(pos, name, description, "constellation");
 
-
-
 					// need to draw the label here
 					starArrs.forEach(function(stars){
 						var geometry = new THREE.Geometry();
