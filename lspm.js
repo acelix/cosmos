@@ -12,7 +12,7 @@ var LSPM = {
 			if (http_request.readyState === 4) {
 				// Javascript function JSON.parse to parse JSON data
 				var stars = JSON.parse(http_request.responseText);
-				
+
 				var colors = [];
 				var colorsh = [];
 				var lumsh = [];
@@ -21,16 +21,16 @@ var LSPM = {
 					vertex.x = star.pos[0] * scaleFactor;
 					vertex.y = star.pos[1] * scaleFactor;
 					vertex.z = star.pos[2] * scaleFactor;
-					geometry.vertices.push(vertex);		
+					geometry.vertices.push(vertex);
 
 					var color = new THREE.Color();
 					colors.push(color);
-					colorint = star.color;					
+					colorint = star.color;
 					color.setRGB( colorint[0]/255, colorint[1]/255, colorint[2]/255 );
 					colorsh[i] = [colorint[0]/255, colorint[1]/255, colorint[2]/255];
 					lumsh[i] = Math.pow(star.luminosity, 0.25);
 				});
-				
+
 				geometry.colors = colors;
 
 				var sMaterial = new THREE.ShaderMaterial( {
@@ -48,10 +48,10 @@ var LSPM = {
 					transparent: true,
 					depthTest: true
 				});
-				 
-				particles = new THREE.PointCloud(geometry, sMaterial);
+
+				particles = new THREE.ParticleSystem(geometry, sMaterial);
 				scene.add(particles);
-				
+
 				console.log("LSPM Born");
 			}
 		};

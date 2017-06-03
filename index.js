@@ -10,8 +10,6 @@ var lspm = require('./lspm.js');
 var constll = require('./constellations.js');
 var labels = require('./labels.js');
 var orbits = require('./orbits.js');
-var shipLoader = require('./ship.js');
-var ship;
 
 var universeScale = 100;
 var universe = require('./universe-sphere.js').init(universeScale);
@@ -47,13 +45,13 @@ var mouse = {
 	y: ch
 };
 
-container.onmousedown = function(e) { 
-	steering = true; 
+container.onmousedown = function(e) {
+	steering = true;
 	mouse.x = e.clientX - cw;
 	mouse.y = e.clientY - ch;
 };
-container.onmouseup   = function(e) { 
-	steering = false; 
+container.onmouseup   = function(e) {
+	steering = false;
 	mouse.x = e.clientX - cw;
 	mouse.y = e.clientY - ch;
 };
@@ -66,7 +64,7 @@ container.onmousemove = function(e) {
 
 var init = function() {
 	scene = new THREE.Scene();
-	
+
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(ww, wh);
 	//renderer.setClearColor(0x000000, 1.0);
@@ -82,18 +80,13 @@ var init = function() {
 
 	var cubeGeom = new THREE.BoxGeometry(0.001, 0.001, 0.001);
 	var cubeMaterial = new THREE.MeshBasicMaterial({
-		color: '#4488BB', 
-		transparent: true, 
+		color: '#4488BB',
+		transparent: true,
 		opacity: 0.0});
 	steeringCube = new THREE.Mesh(cubeGeom, cubeMaterial);
 	steeringCube.position.set(startPosition.x, startPosition.y, startPosition.z);
 	scene.add(steeringCube);
 
-	shipLoader.load(function(shipModel) {
-		steeringCube.add(shipModel);
-		ship = shipModel;
-	});
-	
 	// this stops the jitter
 	camera = new THREE.PerspectiveCamera(55, ww / wh, 0.1, 100000000);
 	camera.position.set(-0.2, 0, 0);
@@ -112,7 +105,7 @@ var init = function() {
 	//controls.movementSpeed = 1;
 	//controls.lookSpeed = 0.125;
 	//controls.lookVertical = true;
-	
+
 	// STATS
 	stats = new Stats();
 	stats.domElement.style.position = 'absolute';
@@ -123,7 +116,7 @@ var init = function() {
 
 var render = function(fl) {
 	requestAnimationFrame(render);
-		
+
 	// set camera - no longer needed because camera is attached to steering cube
 	//	var relativeCameraOffset = new THREE.Vector3(-0.2, 0, 0);
 	//	var cameraOffset = relativeCameraOffset.applyMatrix4(steeringCube.matrixWorld);
@@ -134,10 +127,10 @@ var render = function(fl) {
 	//camera.rotation.x = steeringCube.rotation.x;
 	//camera.rotation.y = steeringCube.rotation.y;
 	//camera.rotation.z = steeringCube.rotation.z;
-	
+
 	// forward
 	steeringCube.translateX(1);
-	
+
 	// steering inertia
 	if (steering) {
 		steerXY.x -= .05 * (steerXY.x - mouse.x);
@@ -158,7 +151,7 @@ var render = function(fl) {
 	coords.innerHTML = xyz_str + " &nbsp; | &nbsp; " + rot_str;
 
 	camera.updateProjectionMatrix();
-	labels.updateLabels(camera, [ship]);
+	labels.updateLabels(camera, []);
 	renderer.render(scene, camera);
 
 	stats.update();

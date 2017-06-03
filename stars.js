@@ -14,7 +14,7 @@ var Stars = {
 			if (http_request.readyState === 4) {
 				// Javascript function JSON.parse to parse JSON data
 				var stars = JSON.parse(http_request.responseText);
-				
+
 				var colors = [];
 				var colorsh = [];
 				var lumsh = [];
@@ -23,20 +23,20 @@ var Stars = {
 					vertex.x = star.pos[0] * scaleFactor;
 					vertex.y = star.pos[1] * scaleFactor;
 					vertex.z = star.pos[2] * scaleFactor;
-					geometry.vertices.push(vertex);		
-					
+					geometry.vertices.push(vertex);
+
 					colors[i] = new THREE.Color();
-					colorint = star.color;					
+					colorint = star.color;
 					colors[i].setRGB( colorint[0]/255, colorint[1]/255, colorint[2]/255 );
 					colorsh[i] = [colorint[0]/255, colorint[1]/255, colorint[2]/255];
 					lumsh[i] = Math.pow(star.luminosity, 0.25);
-					
+
 					var description = descriptions.getForStar(star.hip);
 					if( description ){
 						labels.addLabel(vertex, description.name, description.description, "star");
 					}
 				});
-				
+
 				geometry.colors = colors; // For Some reason, this is still necessary...
 
 				var sMaterial = new THREE.ShaderMaterial( {
@@ -54,10 +54,10 @@ var Stars = {
 					transparent: true,
 					depthTest: true
 				});
-	
-				particles = new THREE.PointCloud(geometry, sMaterial);
+
+				particles = new THREE.ParticleSystem(geometry, sMaterial);
 				scene.add(particles);
-				
+
 				console.log("Stars Born");
 			}
 		};
