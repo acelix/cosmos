@@ -241,6 +241,7 @@ window.camera = null;
 window.steeringCube = null;
 window.container = document.getElementById('container');
 window.controls = null;
+window.effect = null;
 window.coords = document.getElementById('coords');
 
 var ww = window.innerWidth;
@@ -319,10 +320,18 @@ var init = function() {
 	stats.domElement.style.bottom = '0px';
 	stats.domElement.style.zIndex = 100;
 	container.appendChild(stats.domElement);
+
+	controls = new THREE.VRControls(camera);
+	effect = new THREE.VREffect(renderer);
 };
 
+function animate() {
+	effect.requestAnimationFrame( animate );
+	render();
+}
+
 var render = function(fl) {
-	requestAnimationFrame(render);
+	//requestAnimationFrame(render);
 
 	// set camera - no longer needed because camera is attached to steering cube
 	//	var relativeCameraOffset = new THREE.Vector3(-0.2, 0, 0);
@@ -362,12 +371,14 @@ var render = function(fl) {
 	renderer.render(scene, camera);
 
 	stats.update();
-	//controls.update();
+
+	controls.update();
+	effect.render( scene, camera );
 };
 
 init();
 console.log("rendering");
-render();
+animate();
 
 if ( WEBVR.isAvailable() === false ) {
 	document.body.appendChild( WEBVR.getMessage() );
