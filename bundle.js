@@ -269,6 +269,11 @@ container.onmousemove = function(e) {
 		mouse.y = e.clientY - ch;
 	}
 };
+function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	effect.setSize( window.innerWidth, window.innerHeight );
+}
 
 var init = function() {
 	scene = new THREE.Scene();
@@ -286,20 +291,26 @@ var init = function() {
 	scene.add(ambient);
 	scene.add(universe);
 
-	var cubeGeom = new THREE.BoxGeometry(0.001, 0.001, 0.001);
-	var cubeMaterial = new THREE.MeshBasicMaterial({
-		color: '#4488BB',
-		transparent: true,
-		opacity: 0.0});
-	steeringCube = new THREE.Mesh(cubeGeom, cubeMaterial);
-	steeringCube.position.set(startPosition.x, startPosition.y, startPosition.z);
-	scene.add(steeringCube);
+	if ( WEBVR.isAvailable() === false ){
+		var cubeGeom = new THREE.BoxGeometry(0.001, 0.001, 0.001);
+		var cubeMaterial = new THREE.MeshBasicMaterial({
+			color: '#4488BB',
+			transparent: true,
+			opacity: 0.0});
+		steeringCube = new THREE.Mesh(cubeGeom, cubeMaterial);
+		steeringCube.position.set(startPosition.x, startPosition.y, startPosition.z);
+		scene.add(steeringCube);
+	}
 
 	// this stops the jitter
 	camera = new THREE.PerspectiveCamera(55, ww / wh, 0.1, 100000000);
 	camera.position.set(-0.2, 0, 0);
-	camera.lookAt(steeringCube.position);
-	steeringCube.add(camera);
+	if (steeringCube != null ){
+		camera.lookAt(steeringCube.position);
+		steeringCube.add(camera);
+	} else {
+		scene.add(camera);
+	}
 
 	// STAR DATA
 	stars.init(scene, universeScale);
@@ -323,6 +334,12 @@ var init = function() {
 
 	controls = new THREE.VRControls(camera);
 	effect = new THREE.VREffect(renderer);
+
+	WEBVR.getVRDisplay( function ( display ) {
+					document.body.appendChild( WEBVR.getButton( display, renderer.domElement ) );
+	} );
+	window.addEventListener( 'resize', onWindowResize, false );
+
 };
 
 function animate() {
@@ -345,44 +362,47 @@ var render = function(fl) {
 	//camera.rotation.z = steeringCube.rotation.z;
 
 	// forward
-	steeringCube.translateX(1);
+	if(steeringCube != null){
+		steeringCube.translateX(1);
 
-	// steering inertia
-	if (steering) {
-		steerXY.x -= .05 * (steerXY.x - mouse.x);
-		steerXY.y -= .05 * (steerXY.y - mouse.y);
+		// steering inertia
+		if (steering) {
+			steerXY.x -= .05 * (steerXY.x - mouse.x);
+			steerXY.y -= .05 * (steerXY.y - mouse.y);
+		} else {
+			steerXY.x = steerXY.x * .95;
+			steerXY.y = steerXY.y * .95;
+		}
+		// steering
+		steeringCube.rotateY(0.00005 * -steerXY.x);
+		steeringCube.rotateZ(0.00005 * -steerXY.y);
+
+		// speedometer
+		var scp = steeringCube.position;
+		var scr = steeringCube.rotation;
+		var xyz_str = "x:" + scp.x.toFixed(3) + ", y:" + scp.y.toFixed(3) + ", z:" + scp.z.toFixed(3);
+		var rot_str = "rx:" + scr.x.toFixed(3) + ", ry:" + scr.y.toFixed(3);
+		coords.innerHTML = xyz_str + " &nbsp; | &nbsp; " + rot_str;
+		camera.updateProjectionMatrix();
+		labels.updateLabels(camera, []);
+		renderer.render(scene, camera);
 	} else {
-		steerXY.x = steerXY.x * .95;
-		steerXY.y = steerXY.y * .95;
+		camera.updateProjectionMatrix();
+		labels.updateLabels(camera, []);
+		controls.update();
+		effect.render( scene, camera );
 	}
-	// steering
-	steeringCube.rotateY(0.00005 * -steerXY.x);
-	steeringCube.rotateZ(0.00005 * -steerXY.y);
-
-	// speedometer
-	var scp = steeringCube.position;
-	var scr = steeringCube.rotation;
-	var xyz_str = "x:" + scp.x.toFixed(3) + ", y:" + scp.y.toFixed(3) + ", z:" + scp.z.toFixed(3);
-	var rot_str = "rx:" + scr.x.toFixed(3) + ", ry:" + scr.y.toFixed(3);
-	coords.innerHTML = xyz_str + " &nbsp; | &nbsp; " + rot_str;
-
-	camera.updateProjectionMatrix();
-	labels.updateLabels(camera, []);
-	renderer.render(scene, camera);
-
 	stats.update();
-
-	controls.update();
-	effect.render( scene, camera );
 };
-
-init();
-console.log("rendering");
-animate();
 
 if ( WEBVR.isAvailable() === false ) {
 	document.body.appendChild( WEBVR.getMessage() );
 }
+init();
+console.log("rendering");
+animate();
+
+
 /*
 $('#button-data').on('click', function() {
 	$('#menu-search').removeClass('active');
