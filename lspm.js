@@ -49,7 +49,7 @@ var LSPM = {
 					depthTest: true
 				});
 
-				particles = new THREE.ParticleSystem(geometry, sMaterial);
+				particles = new THREE.Points(geometry, sMaterial);
 				scene.add(particles);
 
 				console.log("LSPM Born");

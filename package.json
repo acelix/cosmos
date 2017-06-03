@@ -31,6 +31,6 @@
   "dependencies": {
     "jquery": "^2.1.1",
     "lodash": "^2.4.1",
-    "three": "^0.68.x"
+    "three": "^0.85.2"
   }
 }

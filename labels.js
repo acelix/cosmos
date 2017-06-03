@@ -1,10 +1,11 @@
 var THREE = require('three');
 
 var Labels = {
-	projector: new THREE.Projector(),
+	//projector: new THREE.Projector(),
 	toXYCoords: function(pos, camera) {
 		var vector = pos.clone();
-		this.projector.projectVector(vector, camera);
+		//this.projector.projectVector(vector, camera);
+		vector.project(camera);
 		vector.x =  (vector.x + 1)/2 * window.innerWidth;
 		vector.y = -(vector.y - 1)/2 * window.innerHeight;
 		return vector;
@@ -13,7 +14,7 @@ var Labels = {
 	updateLabels: function(camera, intersects){
 		var that = this;
 		this.labels.forEach(function(item){
-			
+
 			var newPos = that.toXYCoords(item.v, camera);
 			item.text.style.top  = newPos.y + 'px';
 			item.text.style.left = newPos.x + 'px';
@@ -26,18 +27,18 @@ var Labels = {
 	},
 	addLabel: function(vector, name, description, type, append){
 		var l = {};
-		
+
 		var text2 = document.createElement('div');
 		if( description ){
 			text2.className = "label described "+type;
 			text2.innerHTML = "<h3>"+name+"</h3><p class='description'>"+description+"</p>";
-			text2.onmousedown = function(e){ 
+			text2.onmousedown = function(e){
 				var positiveSelect = this.className.indexOf("selected") === -1;
 				Array.prototype.forEach.call(document.getElementsByClassName("selected"), function(el) {
-					el.className = el.className.substring(0,el.className.length - 9);	
+					el.className = el.className.substring(0,el.className.length - 9);
 				});
 				if( positiveSelect ){
-					this.className = this.className + " selected";	
+					this.className = this.className + " selected";
 				} else {
 					this.className = this.className.split(" ").filter(function(clazz){ return clazz !== "selected"; }).join(" ");
 				}
@@ -47,7 +48,7 @@ var Labels = {
 			text2.className = "label";
 			text2.innerHTML = "<h3>"+name+"</h3>";
 		}
-		
+
 		l.text = text2;
 		l.v = vector;
 		this.labels.push(l);
@@ -60,5 +61,3 @@ var Labels = {
 };
 
 module.exports = Labels;
-
-

@@ -55,7 +55,7 @@ var Stars = {
 					depthTest: true
 				});
 
-				particles = new THREE.ParticleSystem(geometry, sMaterial);
+				particles = new THREE.Points(geometry, sMaterial);
 				scene.add(particles);
 
 				console.log("Stars Born");
