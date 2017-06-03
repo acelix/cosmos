@@ -1156,7 +1156,7 @@ var LSPM = {
 	init: function(scene, scaleFactor) {
 		var particles, geometry, materials = [], parameters, i, color, size;
 
-		geometry = new THREE.Geometry();
+		geometry = new THREE.BufferGeometry();
 
 		// Opera 8.0+, Firefox, Chrome, Safari
 		var http_request = new XMLHttpRequest();
@@ -1165,33 +1165,29 @@ var LSPM = {
 				// Javascript function JSON.parse to parse JSON data
 				var stars = JSON.parse(http_request.responseText);
 
-				var colors = [];
-				var colorsh = [];
-				var lumsh = [];
-				stars.forEach(function(star) {
-					var vertex = new THREE.Vector3();
-					vertex.x = star.pos[0] * scaleFactor;
-					vertex.y = star.pos[1] * scaleFactor;
-					vertex.z = star.pos[2] * scaleFactor;
-					geometry.vertices.push(vertex);
+				var positions = new Float32Array( stars.length * 3 );
+				var colors = new Float32Array( stars.length * 3 );
+				var lums = new Float32Array( stars.length );
 
-					var color = new THREE.Color();
-					colors.push(color);
-					colorint = star.color;
-					color.setRGB( colorint[0]/255, colorint[1]/255, colorint[2]/255 );
-					colorsh[i] = [colorint[0]/255, colorint[1]/255, colorint[2]/255];
-					lumsh[i] = Math.pow(star.luminosity, 0.25);
+				stars.forEach(function(star) {
+					positions[ i*3 + 0 ] = star.pos[0] * scaleFactor;
+					positions[ i*3 + 1 ] = star.pos[1] * scaleFactor;
+					positions[ i*3 + 2 ] = star.pos[2] * scaleFactor;
+
+					colors[ i*3 + 0 ] = star.color[0]/255;
+					colors[ i*3 + 1 ] = star.color[1]/255;
+					colors[ i*3 + 2 ] = star.color[2]/255;
+
+					lums[i] = Math.pow(star.luminosity, 0.25);
 				});
 
-				geometry.colors = colors;
+				geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+				geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+				geometry.addAttribute( 'luminosity', new THREE.BufferAttribute( lums, 1 ) );
 
 				var sMaterial = new THREE.ShaderMaterial( {
 					uniforms: {
 						cutoff: { type: 'f', value: 0.25}
-					},
-					attributes: {
-						color: { type: 'v3', value: colorsh },
-						luminosity: { type: 'f', value: lumsh }
 					},
 					vertexShader:   document.getElementById('vertexshader').textContent,
 					fragmentShader: document.getElementById('fragmentshader').textContent,
@@ -61566,7 +61562,7 @@ var Stars = {
 	init: function(scene, scaleFactor) {
 		var particles, geometry, materials = [], parameters, i, color, size;
 
-		geometry = new THREE.Geometry();
+		geometry = new THREE.BufferGeometry();
 
 		// Opera 8.0+, Firefox, Chrome, Safari
 		var http_request = new XMLHttpRequest();
@@ -61575,37 +61571,41 @@ var Stars = {
 				// Javascript function JSON.parse to parse JSON data
 				var stars = JSON.parse(http_request.responseText);
 
-				var colors = [];
-				var colorsh = [];
-				var lumsh = [];
+				var positions = new Float32Array( stars.length * 3 );
+				var colors = new Float32Array( stars.length * 3 );
+				var lums = new Float32Array( stars.length );
+
 				stars.forEach(function(star, i) {
 					var vertex = new THREE.Vector3();
 					vertex.x = star.pos[0] * scaleFactor;
 					vertex.y = star.pos[1] * scaleFactor;
 					vertex.z = star.pos[2] * scaleFactor;
-					geometry.vertices.push(vertex);
+					positions[ i*3 + 0 ] = vertex.x;
+					positions[ i*3 + 1 ] = vertex.y;
+					positions[ i*3 + 2 ] = vertex.z;
 
-					colors[i] = new THREE.Color();
-					colorint = star.color;
-					colors[i].setRGB( colorint[0]/255, colorint[1]/255, colorint[2]/255 );
-					colorsh[i] = [colorint[0]/255, colorint[1]/255, colorint[2]/255];
-					lumsh[i] = Math.pow(star.luminosity, 0.25);
+					colors[ i*3 + 0 ] = star.color[0]/255;
+					colors[ i*3 + 1 ] = star.color[1]/255;
+					colors[ i*3 + 2 ] = star.color[2]/255;
+
+					lums[i] = Math.pow(star.luminosity, 0.25);
 
 					var description = descriptions.getForStar(star.hip);
 					if( description ){
 						labels.addLabel(vertex, description.name, description.description, "star");
 					}
+
 				});
 
-				geometry.colors = colors; // For Some reason, this is still necessary...
+				geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+				geometry.addAttribute( 'customColor', new THREE.BufferAttribute( colors, 3 ) );
+				geometry.addAttribute( 'luminosity', new THREE.BufferAttribute( lums, 1 ) );
 
-				var sMaterial = new THREE.ShaderMaterial( {
+				var sMaterial =
+				//new THREE.PointsMaterial( { color: 0xffffff, size: 10.0  } );
+				new THREE.ShaderMaterial( {
 					uniforms: {
 						cutoff: { type: 'f', value: 0.25}
-					},
-					attributes: {
-						color: { type: 'v3', value: colorsh },
-						luminosity: { type: 'f', value: lumsh }
 					},
 					vertexShader:   document.getElementById('vertexshader').textContent,
 					fragmentShader: document.getElementById('fragmentshader').textContent,
@@ -61633,7 +61633,8 @@ module.exports = Stars;
 var THREE = require('three');
 
 // radius, segmentsWidth, segmentsHeight
-var sphereGeom =  new THREE.SphereGeometry(9000000, 32, 16); 
+var sphereGeom =  new THREE.SphereGeometry(9000000, 32, 16);
+//TODO load async
 var texture = THREE.ImageUtils.loadTexture( './images/milkyway_pan.jpg' );
 
 module.exports = {

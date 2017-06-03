@@ -1,7 +1,8 @@
 var THREE = require('three');
 
 // radius, segmentsWidth, segmentsHeight
-var sphereGeom =  new THREE.SphereGeometry(9000000, 32, 16); 
+var sphereGeom =  new THREE.SphereGeometry(9000000, 32, 16);
+//TODO load async
 var texture = THREE.ImageUtils.loadTexture( './images/milkyway_pan.jpg' );
 
 module.exports = {
