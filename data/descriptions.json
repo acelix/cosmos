@@ -27,7 +27,7 @@
         },{
             "name": "Canis Major",
             "nickname": "Great Dog",
-            "description": "Best seen in winter"
+            "description": "Best seen in winter. The brightest star is Sirius."
         },{
             "name": "Orion",
             "nickname": null,
@@ -44,6 +44,10 @@
             "name": "Aquila",
             "nickname": "Eagle",
             "description": "Best seen in summer"
+        },{
+          "name": "Ara",
+          "nickname": "Altar",
+          "description": "southern constellation situated between Scorpius and Triangulum Australe."
         }
     ],
     "stars": [
