@@ -24,8 +24,11 @@ var steerXY = {
 	y: 0
 };
 
+var WEBVR = require('./lib/webvr.js')
 THREE.OrbitControls = require('./lib/OrbitControls.js');
 THREE.FirstPersonControls = require('./lib/FirstPersonControls.js');
+THREE.VRControls = require('./lib/vrControls.js');
+THREE.VREffect = require('./lib/vrEffects.js');
 
 window.scene = null;
 window.stats = null;
@@ -162,6 +165,10 @@ init();
 console.log("rendering");
 render();
 
+if ( WEBVR.isAvailable() === false ) {
+	document.body.appendChild( WEBVR.getMessage() );
+}
+/*
 $('#button-data').on('click', function() {
 	$('#menu-search').removeClass('active');
 	$('#menu-data').toggleClass('active');
@@ -170,3 +177,4 @@ $('#button-search').on('click', function() {
 	$('#menu-data').removeClass('active');
 	$('#menu-search').toggleClass('active');
 });
+*/

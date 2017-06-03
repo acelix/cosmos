@@ -75,7 +75,7 @@ var Constll = {
 
 module.exports = Constll;
 
-},{"./descriptions.js":2,"./labels.js":4,"three":11}],2:[function(require,module,exports){
+},{"./descriptions.js":2,"./labels.js":4,"three":14}],2:[function(require,module,exports){
 var descriptions_data = {
     constellations: [
         {
@@ -228,8 +228,11 @@ var steerXY = {
 	y: 0
 };
 
+var WEBVR = require('./lib/webvr.js')
 THREE.OrbitControls = require('./lib/OrbitControls.js');
 THREE.FirstPersonControls = require('./lib/FirstPersonControls.js');
+THREE.VRControls = require('./lib/vrControls.js');
+THREE.VREffect = require('./lib/vrEffects.js');
 
 window.scene = null;
 window.stats = null;
@@ -366,6 +369,10 @@ init();
 console.log("rendering");
 render();
 
+if ( WEBVR.isAvailable() === false ) {
+	document.body.appendChild( WEBVR.getMessage() );
+}
+/*
 $('#button-data').on('click', function() {
 	$('#menu-search').removeClass('active');
 	$('#menu-data').toggleClass('active');
@@ -374,8 +381,9 @@ $('#button-search').on('click', function() {
 	$('#menu-data').removeClass('active');
 	$('#menu-search').toggleClass('active');
 });
+*/
 
-},{"./constellations.js":1,"./labels.js":4,"./lib/FirstPersonControls.js":5,"./lib/OrbitControls.js":6,"./lib/Stats.js":7,"./lspm.js":8,"./orbits.js":12,"./stars.js":13,"./universe-sphere.js":14,"jquery":9,"lodash":10,"three":11}],4:[function(require,module,exports){
+},{"./constellations.js":1,"./labels.js":4,"./lib/FirstPersonControls.js":5,"./lib/OrbitControls.js":6,"./lib/Stats.js":7,"./lib/vrControls.js":8,"./lib/vrEffects.js":9,"./lib/webvr.js":10,"./lspm.js":11,"./orbits.js":15,"./stars.js":16,"./universe-sphere.js":17,"jquery":12,"lodash":13,"three":14}],4:[function(require,module,exports){
 var THREE = require('three');
 
 var Labels = {
@@ -440,7 +448,7 @@ var Labels = {
 
 module.exports = Labels;
 
-},{"three":11}],5:[function(require,module,exports){
+},{"three":14}],5:[function(require,module,exports){
 /**
  * @author mrdoob / http://mrdoob.com/
  * @author alteredq / http://alteredqualia.com/
@@ -730,7 +738,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 module.exports = THREE.FirstPersonControls;
 
-},{"three":11}],6:[function(require,module,exports){
+},{"three":14}],6:[function(require,module,exports){
 /**
  * @author qiao / https://github.com/qiao
  * @author mrdoob / http://mrdoob.com
@@ -1139,7 +1147,7 @@ THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype )
 
 module.exports = THREE.OrbitControls;
 
-},{"three":11}],7:[function(require,module,exports){
+},{"three":14}],7:[function(require,module,exports){
 // stats.js r8 - http://github.com/mrdoob/stats.js
 module.exports = function(){var h,a,n=0,o=0,i=Date.now(),u=i,p=i,l=0,q=1E3,r=0,e,j,f,b=[[16,16,48],[0,255,255]],m=0,s=1E3,t=0,d,k,g,c=[[16,48,16],[0,255,0]];h=document.createElement("div");h.style.cursor="pointer";h.style.width="80px";h.style.opacity="0.9";h.style.zIndex="10001";h.addEventListener("mousedown",function(a){a.preventDefault();n=(n+1)%2;n==0?(e.style.display="block",d.style.display="none"):(e.style.display="none",d.style.display="block")},!1);e=document.createElement("div");e.style.textAlign=
 "left";e.style.lineHeight="1.2em";e.style.backgroundColor="rgb("+Math.floor(b[0][0]/2)+","+Math.floor(b[0][1]/2)+","+Math.floor(b[0][2]/2)+")";e.style.padding="0 0 3px 3px";h.appendChild(e);j=document.createElement("div");j.style.fontFamily="Helvetica, Arial, sans-serif";j.style.fontSize="9px";j.style.color="rgb("+b[1][0]+","+b[1][1]+","+b[1][2]+")";j.style.fontWeight="bold";j.innerHTML="FPS";e.appendChild(j);f=document.createElement("div");f.style.position="relative";f.style.width="74px";f.style.height=
@@ -1150,6 +1158,777 @@ a.style.width="1px",a.style.height=Math.random()*30+"px",a.style.cssFloat="left"
 
 
 },{}],8:[function(require,module,exports){
+/**
+ * @author dmarcos / https://github.com/dmarcos
+ * @author mrdoob / http://mrdoob.com
+ */
+var THREE = require('three');
+
+THREE.VRControls = function ( object, onError ) {
+
+	var scope = this;
+
+	var vrDisplay, vrDisplays;
+
+	var standingMatrix = new THREE.Matrix4();
+
+	var frameData = null;
+
+	if ( 'VRFrameData' in window ) {
+
+		frameData = new VRFrameData();
+
+	}
+
+	function gotVRDisplays( displays ) {
+
+		vrDisplays = displays;
+
+		if ( displays.length > 0 ) {
+
+			vrDisplay = displays[ 0 ];
+
+		} else {
+
+			if ( onError ) onError( 'VR input not available.' );
+
+		}
+
+	}
+
+	if ( navigator.getVRDisplays ) {
+
+		navigator.getVRDisplays().then( gotVRDisplays ).catch( function () {
+
+			console.warn( 'THREE.VRControls: Unable to get VR Displays' );
+
+		} );
+
+	}
+
+	// the Rift SDK returns the position in meters
+	// this scale factor allows the user to define how meters
+	// are converted to scene units.
+
+	this.scale = 1;
+
+	// If true will use "standing space" coordinate system where y=0 is the
+	// floor and x=0, z=0 is the center of the room.
+	this.standing = false;
+
+	// Distance from the users eyes to the floor in meters. Used when
+	// standing=true but the VRDisplay doesn't provide stageParameters.
+	this.userHeight = 1.6;
+
+	this.getVRDisplay = function () {
+
+		return vrDisplay;
+
+	};
+
+	this.setVRDisplay = function ( value ) {
+
+		vrDisplay = value;
+
+	};
+
+	this.getVRDisplays = function () {
+
+		console.warn( 'THREE.VRControls: getVRDisplays() is being deprecated.' );
+		return vrDisplays;
+
+	};
+
+	this.getStandingMatrix = function () {
+
+		return standingMatrix;
+
+	};
+
+	this.update = function () {
+
+		if ( vrDisplay ) {
+
+			var pose;
+
+			if ( vrDisplay.getFrameData ) {
+
+				vrDisplay.getFrameData( frameData );
+				pose = frameData.pose;
+
+			} else if ( vrDisplay.getPose ) {
+
+				pose = vrDisplay.getPose();
+
+			}
+
+			if ( pose.orientation !== null ) {
+
+				object.quaternion.fromArray( pose.orientation );
+
+			}
+
+			if ( pose.position !== null ) {
+
+				object.position.fromArray( pose.position );
+
+			} else {
+
+				object.position.set( 0, 0, 0 );
+
+			}
+
+			if ( this.standing ) {
+
+				if ( vrDisplay.stageParameters ) {
+
+					object.updateMatrix();
+
+					standingMatrix.fromArray( vrDisplay.stageParameters.sittingToStandingTransform );
+					object.applyMatrix( standingMatrix );
+
+				} else {
+
+					object.position.setY( object.position.y + this.userHeight );
+
+				}
+
+			}
+
+			object.position.multiplyScalar( scope.scale );
+
+		}
+
+	};
+
+	this.dispose = function () {
+
+		vrDisplay = null;
+
+	};
+
+};
+
+module.exports = THREE.VRControls;
+
+},{"three":14}],9:[function(require,module,exports){
+/**
+ * @author dmarcos / https://github.com/dmarcos
+ * @author mrdoob / http://mrdoob.com
+ *
+ * WebVR Spec: http://mozvr.github.io/webvr-spec/webvr.html
+ *
+ * Firefox: http://mozvr.com/downloads/
+ * Chromium: https://webvr.info/get-chrome
+ */
+
+ var THREE = require('three');
+
+THREE.VREffect = function ( renderer, onError ) {
+
+	var vrDisplay, vrDisplays;
+	var eyeTranslationL = new THREE.Vector3();
+	var eyeTranslationR = new THREE.Vector3();
+	var renderRectL, renderRectR;
+
+	var frameData = null;
+
+	if ( 'VRFrameData' in window ) {
+
+		frameData = new window.VRFrameData();
+
+	}
+
+	function gotVRDisplays( displays ) {
+
+		vrDisplays = displays;
+
+		if ( displays.length > 0 ) {
+
+			vrDisplay = displays[ 0 ];
+
+		} else {
+
+			if ( onError ) onError( 'HMD not available' );
+
+		}
+
+	}
+
+	if ( navigator.getVRDisplays ) {
+
+		navigator.getVRDisplays().then( gotVRDisplays ).catch( function () {
+
+			console.warn( 'THREE.VREffect: Unable to get VR Displays' );
+
+		} );
+
+	}
+
+	//
+
+	this.isPresenting = false;
+
+	var scope = this;
+
+	var rendererSize = renderer.getSize();
+	var rendererUpdateStyle = false;
+	var rendererPixelRatio = renderer.getPixelRatio();
+
+	this.getVRDisplay = function () {
+
+		return vrDisplay;
+
+	};
+
+	this.setVRDisplay = function ( value ) {
+
+		vrDisplay = value;
+
+	};
+
+	this.getVRDisplays = function () {
+
+		console.warn( 'THREE.VREffect: getVRDisplays() is being deprecated.' );
+		return vrDisplays;
+
+	};
+
+	this.setSize = function ( width, height, updateStyle ) {
+
+		rendererSize = { width: width, height: height };
+		rendererUpdateStyle = updateStyle;
+
+		if ( scope.isPresenting ) {
+
+			var eyeParamsL = vrDisplay.getEyeParameters( 'left' );
+			renderer.setPixelRatio( 1 );
+			renderer.setSize( eyeParamsL.renderWidth * 2, eyeParamsL.renderHeight, false );
+
+		} else {
+
+			renderer.setPixelRatio( rendererPixelRatio );
+			renderer.setSize( width, height, updateStyle );
+
+		}
+
+	};
+
+	// VR presentation
+
+	var canvas = renderer.domElement;
+	var defaultLeftBounds = [ 0.0, 0.0, 0.5, 1.0 ];
+	var defaultRightBounds = [ 0.5, 0.0, 0.5, 1.0 ];
+
+	function onVRDisplayPresentChange() {
+
+		var wasPresenting = scope.isPresenting;
+		scope.isPresenting = vrDisplay !== undefined && vrDisplay.isPresenting;
+
+		if ( scope.isPresenting ) {
+
+			var eyeParamsL = vrDisplay.getEyeParameters( 'left' );
+			var eyeWidth = eyeParamsL.renderWidth;
+			var eyeHeight = eyeParamsL.renderHeight;
+
+			if ( ! wasPresenting ) {
+
+				rendererPixelRatio = renderer.getPixelRatio();
+				rendererSize = renderer.getSize();
+
+				renderer.setPixelRatio( 1 );
+				renderer.setSize( eyeWidth * 2, eyeHeight, false );
+
+			}
+
+		} else if ( wasPresenting ) {
+
+			renderer.setPixelRatio( rendererPixelRatio );
+			renderer.setSize( rendererSize.width, rendererSize.height, rendererUpdateStyle );
+
+		}
+
+	}
+
+	window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false );
+
+	this.setFullScreen = function ( boolean ) {
+
+		return new Promise( function ( resolve, reject ) {
+
+			if ( vrDisplay === undefined ) {
+
+				reject( new Error( 'No VR hardware found.' ) );
+				return;
+
+			}
+
+			if ( scope.isPresenting === boolean ) {
+
+				resolve();
+				return;
+
+			}
+
+			if ( boolean ) {
+
+				resolve( vrDisplay.requestPresent( [ { source: canvas } ] ) );
+
+			} else {
+
+				resolve( vrDisplay.exitPresent() );
+
+			}
+
+		} );
+
+	};
+
+	this.requestPresent = function () {
+
+		return this.setFullScreen( true );
+
+	};
+
+	this.exitPresent = function () {
+
+		return this.setFullScreen( false );
+
+	};
+
+	this.requestAnimationFrame = function ( f ) {
+
+		if ( vrDisplay !== undefined ) {
+
+			return vrDisplay.requestAnimationFrame( f );
+
+		} else {
+
+			return window.requestAnimationFrame( f );
+
+		}
+
+	};
+
+	this.cancelAnimationFrame = function ( h ) {
+
+		if ( vrDisplay !== undefined ) {
+
+			vrDisplay.cancelAnimationFrame( h );
+
+		} else {
+
+			window.cancelAnimationFrame( h );
+
+		}
+
+	};
+
+	this.submitFrame = function () {
+
+		if ( vrDisplay !== undefined && scope.isPresenting ) {
+
+			vrDisplay.submitFrame();
+
+		}
+
+	};
+
+	this.autoSubmitFrame = true;
+
+	// render
+
+	var cameraL = new THREE.PerspectiveCamera();
+	cameraL.layers.enable( 1 );
+
+	var cameraR = new THREE.PerspectiveCamera();
+	cameraR.layers.enable( 2 );
+
+	this.render = function ( scene, camera, renderTarget, forceClear ) {
+
+		if ( vrDisplay && scope.isPresenting ) {
+
+			var autoUpdate = scene.autoUpdate;
+
+			if ( autoUpdate ) {
+
+				scene.updateMatrixWorld();
+				scene.autoUpdate = false;
+
+			}
+
+			var eyeParamsL = vrDisplay.getEyeParameters( 'left' );
+			var eyeParamsR = vrDisplay.getEyeParameters( 'right' );
+
+			eyeTranslationL.fromArray( eyeParamsL.offset );
+			eyeTranslationR.fromArray( eyeParamsR.offset );
+
+			if ( Array.isArray( scene ) ) {
+
+				console.warn( 'THREE.VREffect.render() no longer supports arrays. Use object.layers instead.' );
+				scene = scene[ 0 ];
+
+			}
+
+			// When rendering we don't care what the recommended size is, only what the actual size
+			// of the backbuffer is.
+			var size = renderer.getSize();
+			var layers = vrDisplay.getLayers();
+			var leftBounds;
+			var rightBounds;
+
+			if ( layers.length ) {
+
+				var layer = layers[ 0 ];
+
+				leftBounds = layer.leftBounds !== null && layer.leftBounds.length === 4 ? layer.leftBounds : defaultLeftBounds;
+				rightBounds = layer.rightBounds !== null && layer.rightBounds.length === 4 ? layer.rightBounds : defaultRightBounds;
+
+			} else {
+
+				leftBounds = defaultLeftBounds;
+				rightBounds = defaultRightBounds;
+
+			}
+
+			renderRectL = {
+				x: Math.round( size.width * leftBounds[ 0 ] ),
+				y: Math.round( size.height * leftBounds[ 1 ] ),
+				width: Math.round( size.width * leftBounds[ 2 ] ),
+				height: Math.round( size.height * leftBounds[ 3 ] )
+			};
+			renderRectR = {
+				x: Math.round( size.width * rightBounds[ 0 ] ),
+				y: Math.round( size.height * rightBounds[ 1 ] ),
+				width: Math.round( size.width * rightBounds[ 2 ] ),
+				height: Math.round( size.height * rightBounds[ 3 ] )
+			};
+
+			if ( renderTarget ) {
+
+				renderer.setRenderTarget( renderTarget );
+				renderTarget.scissorTest = true;
+
+			} else {
+
+				renderer.setRenderTarget( null );
+				renderer.setScissorTest( true );
+
+			}
+
+			if ( renderer.autoClear || forceClear ) renderer.clear();
+
+			if ( camera.parent === null ) camera.updateMatrixWorld();
+
+			camera.matrixWorld.decompose( cameraL.position, cameraL.quaternion, cameraL.scale );
+
+			cameraR.position.copy( cameraL.position );
+			cameraR.quaternion.copy( cameraL.quaternion );
+			cameraR.scale.copy( cameraL.scale );
+
+			cameraL.translateOnAxis( eyeTranslationL, cameraL.scale.x );
+			cameraR.translateOnAxis( eyeTranslationR, cameraR.scale.x );
+
+			if ( vrDisplay.getFrameData ) {
+
+				vrDisplay.depthNear = camera.near;
+				vrDisplay.depthFar = camera.far;
+
+				vrDisplay.getFrameData( frameData );
+
+				cameraL.projectionMatrix.elements = frameData.leftProjectionMatrix;
+				cameraR.projectionMatrix.elements = frameData.rightProjectionMatrix;
+
+			} else {
+
+				cameraL.projectionMatrix = fovToProjection( eyeParamsL.fieldOfView, true, camera.near, camera.far );
+				cameraR.projectionMatrix = fovToProjection( eyeParamsR.fieldOfView, true, camera.near, camera.far );
+
+			}
+
+			// render left eye
+			if ( renderTarget ) {
+
+				renderTarget.viewport.set( renderRectL.x, renderRectL.y, renderRectL.width, renderRectL.height );
+				renderTarget.scissor.set( renderRectL.x, renderRectL.y, renderRectL.width, renderRectL.height );
+
+			} else {
+
+				renderer.setViewport( renderRectL.x, renderRectL.y, renderRectL.width, renderRectL.height );
+				renderer.setScissor( renderRectL.x, renderRectL.y, renderRectL.width, renderRectL.height );
+
+			}
+			renderer.render( scene, cameraL, renderTarget, forceClear );
+
+			// render right eye
+			if ( renderTarget ) {
+
+				renderTarget.viewport.set( renderRectR.x, renderRectR.y, renderRectR.width, renderRectR.height );
+				renderTarget.scissor.set( renderRectR.x, renderRectR.y, renderRectR.width, renderRectR.height );
+
+			} else {
+
+				renderer.setViewport( renderRectR.x, renderRectR.y, renderRectR.width, renderRectR.height );
+				renderer.setScissor( renderRectR.x, renderRectR.y, renderRectR.width, renderRectR.height );
+
+			}
+			renderer.render( scene, cameraR, renderTarget, forceClear );
+
+			if ( renderTarget ) {
+
+				renderTarget.viewport.set( 0, 0, size.width, size.height );
+				renderTarget.scissor.set( 0, 0, size.width, size.height );
+				renderTarget.scissorTest = false;
+				renderer.setRenderTarget( null );
+
+			} else {
+
+				renderer.setViewport( 0, 0, size.width, size.height );
+				renderer.setScissorTest( false );
+
+			}
+
+			if ( autoUpdate ) {
+
+				scene.autoUpdate = true;
+
+			}
+
+			if ( scope.autoSubmitFrame ) {
+
+				scope.submitFrame();
+
+			}
+
+			return;
+
+		}
+
+		// Regular render mode if not HMD
+
+		renderer.render( scene, camera, renderTarget, forceClear );
+
+	};
+
+	this.dispose = function () {
+
+		window.removeEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false );
+
+	};
+
+	//
+
+	function fovToNDCScaleOffset( fov ) {
+
+		var pxscale = 2.0 / ( fov.leftTan + fov.rightTan );
+		var pxoffset = ( fov.leftTan - fov.rightTan ) * pxscale * 0.5;
+		var pyscale = 2.0 / ( fov.upTan + fov.downTan );
+		var pyoffset = ( fov.upTan - fov.downTan ) * pyscale * 0.5;
+		return { scale: [ pxscale, pyscale ], offset: [ pxoffset, pyoffset ] };
+
+	}
+
+	function fovPortToProjection( fov, rightHanded, zNear, zFar ) {
+
+		rightHanded = rightHanded === undefined ? true : rightHanded;
+		zNear = zNear === undefined ? 0.01 : zNear;
+		zFar = zFar === undefined ? 10000.0 : zFar;
+
+		var handednessScale = rightHanded ? - 1.0 : 1.0;
+
+		// start with an identity matrix
+		var mobj = new THREE.Matrix4();
+		var m = mobj.elements;
+
+		// and with scale/offset info for normalized device coords
+		var scaleAndOffset = fovToNDCScaleOffset( fov );
+
+		// X result, map clip edges to [-w,+w]
+		m[ 0 * 4 + 0 ] = scaleAndOffset.scale[ 0 ];
+		m[ 0 * 4 + 1 ] = 0.0;
+		m[ 0 * 4 + 2 ] = scaleAndOffset.offset[ 0 ] * handednessScale;
+		m[ 0 * 4 + 3 ] = 0.0;
+
+		// Y result, map clip edges to [-w,+w]
+		// Y offset is negated because this proj matrix transforms from world coords with Y=up,
+		// but the NDC scaling has Y=down (thanks D3D?)
+		m[ 1 * 4 + 0 ] = 0.0;
+		m[ 1 * 4 + 1 ] = scaleAndOffset.scale[ 1 ];
+		m[ 1 * 4 + 2 ] = - scaleAndOffset.offset[ 1 ] * handednessScale;
+		m[ 1 * 4 + 3 ] = 0.0;
+
+		// Z result (up to the app)
+		m[ 2 * 4 + 0 ] = 0.0;
+		m[ 2 * 4 + 1 ] = 0.0;
+		m[ 2 * 4 + 2 ] = zFar / ( zNear - zFar ) * - handednessScale;
+		m[ 2 * 4 + 3 ] = ( zFar * zNear ) / ( zNear - zFar );
+
+		// W result (= Z in)
+		m[ 3 * 4 + 0 ] = 0.0;
+		m[ 3 * 4 + 1 ] = 0.0;
+		m[ 3 * 4 + 2 ] = handednessScale;
+		m[ 3 * 4 + 3 ] = 0.0;
+
+		mobj.transpose();
+		return mobj;
+
+	}
+
+	function fovToProjection( fov, rightHanded, zNear, zFar ) {
+
+		var DEG2RAD = Math.PI / 180.0;
+
+		var fovPort = {
+			upTan: Math.tan( fov.upDegrees * DEG2RAD ),
+			downTan: Math.tan( fov.downDegrees * DEG2RAD ),
+			leftTan: Math.tan( fov.leftDegrees * DEG2RAD ),
+			rightTan: Math.tan( fov.rightDegrees * DEG2RAD )
+		};
+
+		return fovPortToProjection( fovPort, rightHanded, zNear, zFar );
+
+	}
+
+};
+
+module.exports = THREE.VREffect;
+
+},{"three":14}],10:[function(require,module,exports){
+/**
+ * @author mrdoob / http://mrdoob.com
+ * Based on @tojiro's vr-samples-utils.js
+ */
+
+var WEBVR = {
+
+	isLatestAvailable: function () {
+
+		console.warn( 'WEBVR: isLatestAvailable() is being deprecated. Use .isAvailable() instead.' );
+		return this.isAvailable();
+
+	},
+
+	isAvailable: function () {
+
+		return navigator.getVRDisplays !== undefined;
+
+	},
+
+	getVRDisplay: function ( onDisplay ) {
+
+		if ( 'getVRDisplays' in navigator ) {
+
+			navigator.getVRDisplays()
+				.then( function ( displays ) {
+					onDisplay( displays[ 0 ] );
+				} );
+
+		}
+
+	},
+
+	getMessage: function () {
+
+		var message;
+
+		if ( navigator.getVRDisplays ) {
+
+			navigator.getVRDisplays().then( function ( displays ) {
+
+				if ( displays.length === 0 ) message = 'WebVR supported, but no VRDisplays found.';
+
+			} );
+
+		} else {
+
+			message = 'Your browser does not support WebVR. See <a href="http://webvr.info">webvr.info</a> for assistance.';
+
+		}
+
+		if ( message !== undefined ) {
+
+			var container = document.createElement( 'div' );
+			container.style.position = 'absolute';
+			container.style.left = '0';
+			container.style.top = '0';
+			container.style.right = '0';
+			container.style.zIndex = '999';
+			container.align = 'center';
+
+			var error = document.createElement( 'div' );
+			error.style.fontFamily = 'sans-serif';
+			error.style.fontSize = '16px';
+			error.style.fontStyle = 'normal';
+			error.style.lineHeight = '26px';
+			error.style.backgroundColor = '#fff';
+			error.style.color = '#000';
+			error.style.padding = '10px 20px';
+			error.style.margin = '50px';
+			error.style.display = 'inline-block';
+			error.innerHTML = message;
+			container.appendChild( error );
+
+			return container;
+
+		}
+
+	},
+
+	getButton: function ( display, canvas ) {
+
+		if ( 'VREffect' in THREE && display instanceof THREE.VREffect ) {
+
+			console.error( 'WebVR.getButton() now expects a VRDisplay.' );
+			return document.createElement( 'button' );
+
+		}
+
+		var button = document.createElement( 'button' );
+		button.style.position = 'absolute';
+		button.style.left = 'calc(50% - 50px)';
+		button.style.bottom = '20px';
+		button.style.width = '100px';
+		button.style.border = '0';
+		button.style.padding = '8px';
+		button.style.cursor = 'pointer';
+		button.style.backgroundColor = '#000';
+		button.style.color = '#fff';
+		button.style.fontFamily = 'sans-serif';
+		button.style.fontSize = '13px';
+		button.style.fontStyle = 'normal';
+		button.style.textAlign = 'center';
+		button.style.zIndex = '999';
+
+		if ( display ) {
+
+			button.textContent = 'ENTER VR';
+			button.onclick = function () {
+
+				display.isPresenting ? display.exitPresent() : display.requestPresent( [ { source: canvas } ] );
+
+			};
+
+			window.addEventListener( 'vrdisplaypresentchange', function () {
+
+				button.textContent = display.isPresenting ? 'EXIT VR' : 'ENTER VR';
+
+			}, false );
+
+		} else {
+
+			button.textContent = 'NO VR DISPLAY';
+
+		}
+
+		return button;
+
+	}
+
+};
+
+module.exports = WEBVR;
+
+},{}],11:[function(require,module,exports){
 var THREE = require('three');
 
 var LSPM = {
@@ -1211,7 +1990,7 @@ var LSPM = {
 
 module.exports = LSPM;
 
-},{"three":11}],9:[function(require,module,exports){
+},{"three":14}],12:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.2.4
  * http://jquery.com/
@@ -11027,7 +11806,7 @@ if ( !noGlobal ) {
 return jQuery;
 }));
 
-},{}],10:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -17817,7 +18596,7 @@ return jQuery;
 }.call(this));
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],11:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -61503,7 +62282,7 @@ return jQuery;
 
 })));
 
-},{}],12:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var THREE = require('three');
 
 var Orbits = {
@@ -61553,7 +62332,7 @@ var Orbits = {
 
 module.exports = Orbits;
 
-},{"three":11}],13:[function(require,module,exports){
+},{"three":14}],16:[function(require,module,exports){
 var THREE = require('three');
 var labels   = require('./labels.js');
 var descriptions = require('./descriptions.js');
@@ -61629,7 +62408,7 @@ var Stars = {
 
 module.exports = Stars;
 
-},{"./descriptions.js":2,"./labels.js":4,"three":11}],14:[function(require,module,exports){
+},{"./descriptions.js":2,"./labels.js":4,"three":14}],17:[function(require,module,exports){
 var THREE = require('three');
 
 // radius, segmentsWidth, segmentsHeight
@@ -61651,4 +62430,4 @@ module.exports = {
   }
 };
 
-},{"three":11}]},{},[3])
+},{"three":14}]},{},[3])
