@@ -9,7 +9,7 @@ var Constll = {
 		var particles, geometry, materials = [], parameters, i, color, size;
 
 		var material = new THREE.LineBasicMaterial({
-			color: '#5566ee'
+			color: '#112255'
 		});
 
 		// Opera 8.0+, Firefox, Chrome, Safari
@@ -33,7 +33,7 @@ var Constll = {
 					if(con.hasOwnProperty('name')){
 						name = con.name;
 					}
-					
+
 					var description = descriptions.getForConstellation(name);
 					if( description ){
 						description_str = "";
@@ -45,23 +45,23 @@ var Constll = {
 						description = null;
 					}
 					labels.addLabel(pos, name, description, "constellation");
-					
-					
-					
+
+
+
 					// need to draw the label here
 					starArrs.forEach(function(stars){
 						var geometry = new THREE.Geometry();
-						
+
 						stars.forEach(function(star){
 							geometry.vertices.push(
 								new THREE.Vector3(star.x * scaleFactor, star.y * scaleFactor, star.z * scaleFactor)
 							);
 						});
-						
+
 						var line = new THREE.Line( geometry, material );
 						scene.add( line );
 					});
-					
+
 				});
 
 				console.log("Constellations Drawn");
@@ -75,7 +75,7 @@ var Constll = {
 
 module.exports = Constll;
 
-},{"./descriptions.js":2,"./labels.js":4,"three":14}],2:[function(require,module,exports){
+},{"./descriptions.js":2,"./labels.js":4,"three":12}],2:[function(require,module,exports){
 var descriptions_data = {
     constellations: [
         {
@@ -213,7 +213,6 @@ var stars = require('./stars.js');
 var lspm = require('./lspm.js');
 var constll = require('./constellations.js');
 var labels = require('./labels.js');
-var orbits = require('./orbits.js');
 
 var universeScale = 100;
 var universe = require('./universe-sphere.js').init(universeScale);
@@ -228,11 +227,10 @@ var steerXY = {
 	y: 0
 };
 
-var WEBVR = require('./lib/webvr.js')
-THREE.OrbitControls = require('./lib/OrbitControls.js');
-THREE.FirstPersonControls = require('./lib/FirstPersonControls.js');
+
 THREE.VRControls = require('./lib/vrControls.js');
 THREE.VREffect = require('./lib/vrEffects.js');
+var WEBVR = require('./lib/webvr.js');
 
 window.scene = null;
 window.stats = null;
@@ -295,8 +293,8 @@ var init = function() {
 		var cubeGeom = new THREE.BoxGeometry(0.001, 0.001, 0.001);
 		var cubeMaterial = new THREE.MeshBasicMaterial({
 			color: '#4488BB',
-			transparent: true,
-			opacity: 0.0});
+			transparent: false,
+			opacity: 0.7});
 		steeringCube = new THREE.Mesh(cubeGeom, cubeMaterial);
 		steeringCube.position.set(startPosition.x, startPosition.y, startPosition.z);
 		scene.add(steeringCube);
@@ -315,15 +313,7 @@ var init = function() {
 	// STAR DATA
 	stars.init(scene, universeScale);
 	lspm.init(scene, universeScale);
-	//orbits.init(scene, universeScale);
 	constll.init(scene, universeScale);
-
-	// CONTROLS
-	// controls = new THREE.OrbitControls( camera, renderer.domElement );
-	//controls = new THREE.FirstPersonControls(camera);
-	//controls.movementSpeed = 1;
-	//controls.lookSpeed = 0.125;
-	//controls.lookVertical = true;
 
 	// STATS
 	stats = new Stats();
@@ -339,7 +329,6 @@ var init = function() {
 					document.body.appendChild( WEBVR.getButton( display, renderer.domElement ) );
 	} );
 	window.addEventListener( 'resize', onWindowResize, false );
-
 };
 
 function animate() {
@@ -402,19 +391,7 @@ init();
 console.log("rendering");
 animate();
 
-
-/*
-$('#button-data').on('click', function() {
-	$('#menu-search').removeClass('active');
-	$('#menu-data').toggleClass('active');
-});
-$('#button-search').on('click', function() {
-	$('#menu-data').removeClass('active');
-	$('#menu-search').toggleClass('active');
-});
-*/
-
-},{"./constellations.js":1,"./labels.js":4,"./lib/FirstPersonControls.js":5,"./lib/OrbitControls.js":6,"./lib/Stats.js":7,"./lib/vrControls.js":8,"./lib/vrEffects.js":9,"./lib/webvr.js":10,"./lspm.js":11,"./orbits.js":15,"./stars.js":16,"./universe-sphere.js":17,"jquery":12,"lodash":13,"three":14}],4:[function(require,module,exports){
+},{"./constellations.js":1,"./labels.js":4,"./lib/Stats.js":5,"./lib/vrControls.js":6,"./lib/vrEffects.js":7,"./lib/webvr.js":8,"./lspm.js":9,"./stars.js":13,"./universe-sphere.js":14,"jquery":10,"lodash":11,"three":12}],4:[function(require,module,exports){
 var THREE = require('three');
 
 var Labels = {
@@ -479,706 +456,7 @@ var Labels = {
 
 module.exports = Labels;
 
-},{"three":14}],5:[function(require,module,exports){
-/**
- * @author mrdoob / http://mrdoob.com/
- * @author alteredq / http://alteredqualia.com/
- * @author paulirish / http://paulirish.com/
- */
-
-var THREE = require('three');
-
-THREE.FirstPersonControls = function ( object, domElement ) {
-
-	this.object = object;
-	this.target = new THREE.Vector3( 0, 0, 0 );
-
-	this.domElement = ( domElement !== undefined ) ? domElement : document;
-
-	this.movementSpeed = 1.0;
-	this.lookSpeed = 0.005;
-
-	this.lookVertical = true;
-	this.autoForward = false;
-	// this.invertVertical = false;
-
-	this.activeLook = true;
-
-	this.heightSpeed = false;
-	this.heightCoef = 1.0;
-	this.heightMin = 0.0;
-	this.heightMax = 1.0;
-
-	this.constrainVertical = false;
-	this.verticalMin = 0;
-	this.verticalMax = Math.PI;
-
-	this.autoSpeedFactor = 0.0;
-
-	this.mouseX = 0;
-	this.mouseY = 0;
-
-	this.lat = 0;
-	this.lon = 0;
-	this.phi = 0;
-	this.theta = 0;
-
-	this.moveForward = false;
-	this.moveBackward = false;
-	this.moveLeft = false;
-	this.moveRight = false;
-	this.freeze = false;
-
-	this.mouseDragOn = false;
-
-	this.viewHalfX = 0;
-	this.viewHalfY = 0;
-
-	if ( this.domElement !== document ) {
-
-		this.domElement.setAttribute( 'tabindex', -1 );
-
-	}
-
-	//
-
-	this.handleResize = function () {
-
-		if ( this.domElement === document ) {
-
-			this.viewHalfX = window.innerWidth / 2;
-			this.viewHalfY = window.innerHeight / 2;
-
-		} else {
-
-			this.viewHalfX = this.domElement.offsetWidth / 2;
-			this.viewHalfY = this.domElement.offsetHeight / 2;
-
-		}
-
-	};
-
-	this.onMouseDown = function ( event ) {
-
-		if ( this.domElement !== document ) {
-
-			this.domElement.focus();
-
-		}
-
-		event.preventDefault();
-		event.stopPropagation();
-
-		if ( this.activeLook ) {
-
-			switch ( event.button ) {
-
-				case 0: this.moveForward = true; break;
-				case 2: this.moveBackward = true; break;
-
-			}
-
-		}
-
-		this.mouseDragOn = true;
-
-	};
-
-	this.onMouseUp = function ( event ) {
-
-		event.preventDefault();
-		event.stopPropagation();
-
-		if ( this.activeLook ) {
-
-			switch ( event.button ) {
-
-				case 0: this.moveForward = false; break;
-				case 2: this.moveBackward = false; break;
-
-			}
-
-		}
-
-		this.mouseDragOn = false;
-
-	};
-
-	this.onMouseMove = function ( event ) {
-
-		if ( this.domElement === document ) {
-
-			this.mouseX = event.pageX - this.viewHalfX;
-			this.mouseY = event.pageY - this.viewHalfY;
-
-		} else {
-
-			this.mouseX = event.pageX - this.domElement.offsetLeft - this.viewHalfX;
-			this.mouseY = event.pageY - this.domElement.offsetTop - this.viewHalfY;
-
-		}
-
-	};
-
-	this.onKeyDown = function ( event ) {
-
-		//event.preventDefault();
-
-		switch ( event.keyCode ) {
-
-			case 38: /*up*/
-			case 87: /*W*/ this.moveForward = true; break;
-
-			case 37: /*left*/
-			case 65: /*A*/ this.moveLeft = true; break;
-
-			case 40: /*down*/
-			case 83: /*S*/ this.moveBackward = true; break;
-
-			case 39: /*right*/
-			case 68: /*D*/ this.moveRight = true; break;
-
-			case 82: /*R*/ this.moveUp = true; break;
-			case 70: /*F*/ this.moveDown = true; break;
-
-			case 81: /*Q*/ this.freeze = !this.freeze; break;
-
-		}
-
-	};
-
-	this.onKeyUp = function ( event ) {
-
-		switch( event.keyCode ) {
-
-			case 38: /*up*/
-			case 87: /*W*/ this.moveForward = false; break;
-
-			case 37: /*left*/
-			case 65: /*A*/ this.moveLeft = false; break;
-
-			case 40: /*down*/
-			case 83: /*S*/ this.moveBackward = false; break;
-
-			case 39: /*right*/
-			case 68: /*D*/ this.moveRight = false; break;
-
-			case 82: /*R*/ this.moveUp = false; break;
-			case 70: /*F*/ this.moveDown = false; break;
-
-		}
-
-	};
-
-	this.update = function( delta ) {
-
-		if ( this.freeze ) {
-
-			return;
-
-		}
-
-		if ( this.heightSpeed ) {
-
-			var y = THREE.Math.clamp( this.object.position.y, this.heightMin, this.heightMax );
-			var heightDelta = y - this.heightMin;
-
-			this.autoSpeedFactor = delta * ( heightDelta * this.heightCoef );
-
-		} else {
-
-			this.autoSpeedFactor = 0.0;
-
-		}
-
-		var actualMoveSpeed = delta * this.movementSpeed;
-
-		if ( this.moveForward || ( this.autoForward && !this.moveBackward ) ) this.object.translateZ( - ( actualMoveSpeed + this.autoSpeedFactor ) );
-		if ( this.moveBackward ) this.object.translateZ( actualMoveSpeed );
-
-		if ( this.moveLeft ) this.object.translateX( - actualMoveSpeed );
-		if ( this.moveRight ) this.object.translateX( actualMoveSpeed );
-
-		if ( this.moveUp ) this.object.translateY( actualMoveSpeed );
-		if ( this.moveDown ) this.object.translateY( - actualMoveSpeed );
-
-		var actualLookSpeed = delta * this.lookSpeed;
-
-		if ( !this.activeLook ) {
-
-			actualLookSpeed = 0;
-
-		}
-
-		var verticalLookRatio = 1;
-
-		if ( this.constrainVertical ) {
-
-			verticalLookRatio = Math.PI / ( this.verticalMax - this.verticalMin );
-
-		}
-
-		this.lon += this.mouseX * actualLookSpeed;
-		if( this.lookVertical ) this.lat -= this.mouseY * actualLookSpeed * verticalLookRatio;
-
-		this.lat = Math.max( - 85, Math.min( 85, this.lat ) );
-		this.phi = THREE.Math.degToRad( 90 - this.lat );
-
-		this.theta = THREE.Math.degToRad( this.lon );
-
-		if ( this.constrainVertical ) {
-
-			this.phi = THREE.Math.mapLinear( this.phi, 0, Math.PI, this.verticalMin, this.verticalMax );
-
-		}
-
-		var targetPosition = this.target,
-			position = this.object.position;
-
-		targetPosition.x = position.x + 100 * Math.sin( this.phi ) * Math.cos( this.theta );
-		targetPosition.y = position.y + 100 * Math.cos( this.phi );
-		targetPosition.z = position.z + 100 * Math.sin( this.phi ) * Math.sin( this.theta );
-
-		this.object.lookAt( targetPosition );
-
-	};
-
-
-	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
-
-	this.domElement.addEventListener( 'mousemove', bind( this, this.onMouseMove ), false );
-	this.domElement.addEventListener( 'mousedown', bind( this, this.onMouseDown ), false );
-	this.domElement.addEventListener( 'mouseup', bind( this, this.onMouseUp ), false );
-	
-	window.addEventListener( 'keydown', bind( this, this.onKeyDown ), false );
-	window.addEventListener( 'keyup', bind( this, this.onKeyUp ), false );
-
-	function bind( scope, fn ) {
-
-		return function () {
-
-			fn.apply( scope, arguments );
-
-		};
-
-	};
-
-	this.handleResize();
-
-};
-
-module.exports = THREE.FirstPersonControls;
-
-},{"three":14}],6:[function(require,module,exports){
-/**
- * @author qiao / https://github.com/qiao
- * @author mrdoob / http://mrdoob.com
- * @author alteredq / http://alteredqualia.com/
- * @author WestLangley / http://github.com/WestLangley
- */
-
-var THREE = require('three');
-
-THREE.OrbitControls = function ( object, domElement ) {
-
-	this.object = object;
-	this.domElement = ( domElement !== undefined ) ? domElement : document;
-
-	// API
-
-	this.enabled = true;
-
-	this.center = new THREE.Vector3();
-
-	this.userZoom = true;
-	this.userZoomSpeed = 1.0;
-
-	this.userRotate = true;
-	this.userRotateSpeed = 1.0;
-
-	this.userPan = true;
-	this.userPanSpeed = 2.0;
-
-	this.autoRotate = false;
-	this.autoRotateSpeed = 2.0; // 30 seconds per round when fps is 60
-
-	this.minPolarAngle = 0; // radians
-	this.maxPolarAngle = Math.PI; // radians
-
-	this.minDistance = 0;
-	this.maxDistance = Infinity;
-
-	// 65 /*A*/, 83 /*S*/, 68 /*D*/
-	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, ROTATE: 65, ZOOM: 83, PAN: 68 };
-
-	// internals
-
-	var scope = this;
-
-	var EPS = 0.000001;
-	var PIXELS_PER_ROUND = 1800;
-
-	var rotateStart = new THREE.Vector2();
-	var rotateEnd = new THREE.Vector2();
-	var rotateDelta = new THREE.Vector2();
-
-	var zoomStart = new THREE.Vector2();
-	var zoomEnd = new THREE.Vector2();
-	var zoomDelta = new THREE.Vector2();
-
-	var phiDelta = 0;
-	var thetaDelta = 0;
-	var scale = 1;
-
-	var lastPosition = new THREE.Vector3();
-
-	var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2 };
-	var state = STATE.NONE;
-
-	// events
-
-	var changeEvent = { type: 'change' };
-
-
-	this.rotateLeft = function ( angle ) {
-
-		if ( angle === undefined ) {
-
-			angle = getAutoRotationAngle();
-
-		}
-
-		thetaDelta -= angle;
-
-	};
-
-	this.rotateRight = function ( angle ) {
-
-		if ( angle === undefined ) {
-
-			angle = getAutoRotationAngle();
-
-		}
-
-		thetaDelta += angle;
-
-	};
-
-	this.rotateUp = function ( angle ) {
-
-		if ( angle === undefined ) {
-
-			angle = getAutoRotationAngle();
-
-		}
-
-		phiDelta -= angle;
-
-	};
-
-	this.rotateDown = function ( angle ) {
-
-		if ( angle === undefined ) {
-
-			angle = getAutoRotationAngle();
-
-		}
-
-		phiDelta += angle;
-
-	};
-
-	this.zoomIn = function ( zoomScale ) {
-
-		if ( zoomScale === undefined ) {
-
-			zoomScale = getZoomScale();
-
-		}
-
-		scale /= zoomScale;
-
-	};
-
-	this.zoomOut = function ( zoomScale ) {
-
-		if ( zoomScale === undefined ) {
-
-			zoomScale = getZoomScale();
-
-		}
-
-		scale *= zoomScale;
-
-	};
-
-	this.pan = function ( distance ) {
-
-		distance.transformDirection( this.object.matrix );
-		distance.multiplyScalar( scope.userPanSpeed );
-
-		this.object.position.add( distance );
-		this.center.add( distance );
-
-	};
-
-	this.update = function () {
-
-		var position = this.object.position;
-		var offset = position.clone().sub( this.center );
-
-		// angle from z-axis around y-axis
-
-		var theta = Math.atan2( offset.x, offset.z );
-
-		// angle from y-axis
-
-		var phi = Math.atan2( Math.sqrt( offset.x * offset.x + offset.z * offset.z ), offset.y );
-
-		if ( this.autoRotate ) {
-
-			this.rotateLeft( getAutoRotationAngle() );
-
-		}
-
-		theta += thetaDelta;
-		phi += phiDelta;
-
-		// restrict phi to be between desired limits
-		phi = Math.max( this.minPolarAngle, Math.min( this.maxPolarAngle, phi ) );
-
-		// restrict phi to be betwee EPS and PI-EPS
-		phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
-
-		var radius = offset.length() * scale;
-
-		// restrict radius to be between desired limits
-		radius = Math.max( this.minDistance, Math.min( this.maxDistance, radius ) );
-
-		offset.x = radius * Math.sin( phi ) * Math.sin( theta );
-		offset.y = radius * Math.cos( phi );
-		offset.z = radius * Math.sin( phi ) * Math.cos( theta );
-
-		position.copy( this.center ).add( offset );
-
-		this.object.lookAt( this.center );
-
-		thetaDelta = 0;
-		phiDelta = 0;
-		scale = 1;
-
-		if ( lastPosition.distanceTo( this.object.position ) > 0 ) {
-
-			this.dispatchEvent( changeEvent );
-
-			lastPosition.copy( this.object.position );
-
-		}
-
-	};
-
-
-	function getAutoRotationAngle() {
-
-		return 2 * Math.PI / 60 / 60 * scope.autoRotateSpeed;
-
-	}
-
-	function getZoomScale() {
-
-		return Math.pow( 0.95, scope.userZoomSpeed );
-
-	}
-
-	function onMouseDown( event ) {
-
-		if ( scope.enabled === false ) return;
-		if ( scope.userRotate === false ) return;
-
-		event.preventDefault();
-
-		if ( state === STATE.NONE )
-		{
-			if ( event.button === 0 )
-				state = STATE.ROTATE;
-			if ( event.button === 1 )
-				state = STATE.ZOOM;
-			if ( event.button === 2 )
-				state = STATE.PAN;
-		}
-		
-		
-		if ( state === STATE.ROTATE ) {
-
-			//state = STATE.ROTATE;
-
-			rotateStart.set( event.clientX, event.clientY );
-
-		} else if ( state === STATE.ZOOM ) {
-
-			//state = STATE.ZOOM;
-
-			zoomStart.set( event.clientX, event.clientY );
-
-		} else if ( state === STATE.PAN ) {
-
-			//state = STATE.PAN;
-
-		}
-
-		document.addEventListener( 'mousemove', onMouseMove, false );
-		document.addEventListener( 'mouseup', onMouseUp, false );
-
-	}
-
-	function onMouseMove( event ) {
-
-		if ( scope.enabled === false ) return;
-
-		event.preventDefault();
-
-		
-		
-		if ( state === STATE.ROTATE ) {
-
-			rotateEnd.set( event.clientX, event.clientY );
-			rotateDelta.subVectors( rotateEnd, rotateStart );
-
-			scope.rotateLeft( 2 * Math.PI * rotateDelta.x / PIXELS_PER_ROUND * scope.userRotateSpeed );
-			scope.rotateUp( 2 * Math.PI * rotateDelta.y / PIXELS_PER_ROUND * scope.userRotateSpeed );
-
-			rotateStart.copy( rotateEnd );
-
-		} else if ( state === STATE.ZOOM ) {
-
-			zoomEnd.set( event.clientX, event.clientY );
-			zoomDelta.subVectors( zoomEnd, zoomStart );
-
-			if ( zoomDelta.y > 0 ) {
-
-				scope.zoomIn();
-
-			} else {
-
-				scope.zoomOut();
-
-			}
-
-			zoomStart.copy( zoomEnd );
-
-		} else if ( state === STATE.PAN ) {
-
-			var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-			var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-			scope.pan( new THREE.Vector3( - movementX, movementY, 0 ) );
-
-		}
-
-	}
-
-	function onMouseUp( event ) {
-
-		if ( scope.enabled === false ) return;
-		if ( scope.userRotate === false ) return;
-
-		document.removeEventListener( 'mousemove', onMouseMove, false );
-		document.removeEventListener( 'mouseup', onMouseUp, false );
-
-		state = STATE.NONE;
-
-	}
-
-	function onMouseWheel( event ) {
-
-		if ( scope.enabled === false ) return;
-		if ( scope.userZoom === false ) return;
-
-		var delta = 0;
-
-		if ( event.wheelDelta ) { // WebKit / Opera / Explorer 9
-
-			delta = event.wheelDelta;
-
-		} else if ( event.detail ) { // Firefox
-
-			delta = - event.detail;
-
-		}
-
-		if ( delta > 0 ) {
-
-			scope.zoomOut();
-
-		} else {
-
-			scope.zoomIn();
-
-		}
-
-	}
-
-	function onKeyDown( event ) {
-
-		if ( scope.enabled === false ) return;
-		if ( scope.userPan === false ) return;
-
-		switch ( event.keyCode ) {
-
-			/*case scope.keys.UP:
-				scope.pan( new THREE.Vector3( 0, 1, 0 ) );
-				break;
-			case scope.keys.BOTTOM:
-				scope.pan( new THREE.Vector3( 0, - 1, 0 ) );
-				break;
-			case scope.keys.LEFT:
-				scope.pan( new THREE.Vector3( - 1, 0, 0 ) );
-				break;
-			case scope.keys.RIGHT:
-				scope.pan( new THREE.Vector3( 1, 0, 0 ) );
-				break;
-			*/
-			case scope.keys.ROTATE:
-				state = STATE.ROTATE;
-				break;
-			case scope.keys.ZOOM:
-				state = STATE.ZOOM;
-				break;
-			case scope.keys.PAN:
-				state = STATE.PAN;
-				break;
-				
-		}
-
-	}
-	
-	function onKeyUp( event ) {
-
-		switch ( event.keyCode ) {
-
-			case scope.keys.ROTATE:
-			case scope.keys.ZOOM:
-			case scope.keys.PAN:
-				state = STATE.NONE;
-				break;
-		}
-
-	}
-
-	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
-	this.domElement.addEventListener( 'mousedown', onMouseDown, false );
-	this.domElement.addEventListener( 'mousewheel', onMouseWheel, false );
-	this.domElement.addEventListener( 'DOMMouseScroll', onMouseWheel, false ); // firefox
-	window.addEventListener( 'keydown', onKeyDown, false );
-	window.addEventListener( 'keyup', onKeyUp, false );
-
-};
-
-THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-
-module.exports = THREE.OrbitControls;
-
-},{"three":14}],7:[function(require,module,exports){
+},{"three":12}],5:[function(require,module,exports){
 // stats.js r8 - http://github.com/mrdoob/stats.js
 module.exports = function(){var h,a,n=0,o=0,i=Date.now(),u=i,p=i,l=0,q=1E3,r=0,e,j,f,b=[[16,16,48],[0,255,255]],m=0,s=1E3,t=0,d,k,g,c=[[16,48,16],[0,255,0]];h=document.createElement("div");h.style.cursor="pointer";h.style.width="80px";h.style.opacity="0.9";h.style.zIndex="10001";h.addEventListener("mousedown",function(a){a.preventDefault();n=(n+1)%2;n==0?(e.style.display="block",d.style.display="none"):(e.style.display="none",d.style.display="block")},!1);e=document.createElement("div");e.style.textAlign=
 "left";e.style.lineHeight="1.2em";e.style.backgroundColor="rgb("+Math.floor(b[0][0]/2)+","+Math.floor(b[0][1]/2)+","+Math.floor(b[0][2]/2)+")";e.style.padding="0 0 3px 3px";h.appendChild(e);j=document.createElement("div");j.style.fontFamily="Helvetica, Arial, sans-serif";j.style.fontSize="9px";j.style.color="rgb("+b[1][0]+","+b[1][1]+","+b[1][2]+")";j.style.fontWeight="bold";j.innerHTML="FPS";e.appendChild(j);f=document.createElement("div");f.style.position="relative";f.style.width="74px";f.style.height=
@@ -1188,7 +466,7 @@ a.style.width="1px",a.style.height=Math.random()*30+"px",a.style.cssFloat="left"
 100*30),f.appendChild(f.firstChild).style.height=a+"px",p=i,o=0}}};
 
 
-},{}],8:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * @author dmarcos / https://github.com/dmarcos
  * @author mrdoob / http://mrdoob.com
@@ -1342,7 +620,7 @@ THREE.VRControls = function ( object, onError ) {
 
 module.exports = THREE.VRControls;
 
-},{"three":14}],9:[function(require,module,exports){
+},{"three":12}],7:[function(require,module,exports){
 /**
  * @author dmarcos / https://github.com/dmarcos
  * @author mrdoob / http://mrdoob.com
@@ -1824,7 +1102,7 @@ THREE.VREffect = function ( renderer, onError ) {
 
 module.exports = THREE.VREffect;
 
-},{"three":14}],10:[function(require,module,exports){
+},{"three":12}],8:[function(require,module,exports){
 /**
  * @author mrdoob / http://mrdoob.com
  * Based on @tojiro's vr-samples-utils.js
@@ -1907,28 +1185,8 @@ var WEBVR = {
 
 	getButton: function ( display, canvas ) {
 
-		if ( 'VREffect' in THREE && display instanceof THREE.VREffect ) {
-
-			console.error( 'WebVR.getButton() now expects a VRDisplay.' );
-			return document.createElement( 'button' );
-
-		}
-
 		var button = document.createElement( 'button' );
-		button.style.position = 'absolute';
-		button.style.left = 'calc(50% - 50px)';
-		button.style.bottom = '20px';
-		button.style.width = '100px';
-		button.style.border = '0';
-		button.style.padding = '8px';
-		button.style.cursor = 'pointer';
-		button.style.backgroundColor = '#000';
-		button.style.color = '#fff';
-		button.style.fontFamily = 'sans-serif';
-		button.style.fontSize = '13px';
-		button.style.fontStyle = 'normal';
-		button.style.textAlign = 'center';
-		button.style.zIndex = '999';
+		button.className = 'vr';
 
 		if ( display ) {
 
@@ -1959,7 +1217,7 @@ var WEBVR = {
 
 module.exports = WEBVR;
 
-},{}],11:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var THREE = require('three');
 
 var LSPM = {
@@ -2021,7 +1279,7 @@ var LSPM = {
 
 module.exports = LSPM;
 
-},{"three":14}],12:[function(require,module,exports){
+},{"three":12}],10:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.2.4
  * http://jquery.com/
@@ -11837,7 +11095,7 @@ if ( !noGlobal ) {
 return jQuery;
 }));
 
-},{}],13:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -18627,7 +17885,7 @@ return jQuery;
 }.call(this));
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],14:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -62313,57 +61571,7 @@ return jQuery;
 
 })));
 
-},{}],15:[function(require,module,exports){
-var THREE = require('three');
-
-var Orbits = {
-	init: function(scene, scaleFactor) {
-		var that = this;
-		var particles, geometry, materials = [], parameters, i, color, size;
-
-		var material = new THREE.LineBasicMaterial({
-			color: '#00C362'
-		});
-
-		// Opera 8.0+, Firefox, Chrome, Safari
-		var http_request = new XMLHttpRequest();
-		http_request.onreadystatechange = function() {
-			if (http_request.readyState === 4) {
-				// Javascript function JSON.parse to parse JSON data
-				//console.log("wut ");
-				var orbits = JSON.parse(http_request.responseText);
-
-				orbits.forEach(function(orbitsObj) {
-					
-					var posArrs = orbitsObj.steps;
-					//console.log(orbitsObj.name);
-					var geometry = new THREE.Geometry();
-					
-					posArrs.forEach(function(pos){
-						geometry.vertices.push(
-								new THREE.Vector3(pos[0] * scaleFactor, pos[1] * scaleFactor, pos[2] * scaleFactor)
-							);
-					});
-					/*geometry.vertices.push(
-						new THREE.Vector3(posArrs[0][0] * scaleFactor, posArrs[0][1] * scaleFactor, posArrs[0][2] * scaleFactor)
-					);*/
-					var line = new THREE.Line( geometry, material );
-					scene.add( line );
-					
-				});
-
-				console.log("Orbits Drawn");
-			}
-		};
-		http_request.open("GET", "data/starorbits.json", true);
-		http_request.send();
-	}
-
-};
-
-module.exports = Orbits;
-
-},{"three":14}],16:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var THREE = require('three');
 var labels   = require('./labels.js');
 var descriptions = require('./descriptions.js');
@@ -62439,7 +61647,7 @@ var Stars = {
 
 module.exports = Stars;
 
-},{"./descriptions.js":2,"./labels.js":4,"three":14}],17:[function(require,module,exports){
+},{"./descriptions.js":2,"./labels.js":4,"three":12}],14:[function(require,module,exports){
 var THREE = require('three');
 
 // radius, segmentsWidth, segmentsHeight
@@ -62461,4 +61669,4 @@ module.exports = {
   }
 };
 
-},{"three":14}]},{},[3])
+},{"three":12}]},{},[3])

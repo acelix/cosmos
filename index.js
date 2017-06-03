@@ -9,7 +9,6 @@ var stars = require('./stars.js');
 var lspm = require('./lspm.js');
 var constll = require('./constellations.js');
 var labels = require('./labels.js');
-var orbits = require('./orbits.js');
 
 var universeScale = 100;
 var universe = require('./universe-sphere.js').init(universeScale);
@@ -24,11 +23,10 @@ var steerXY = {
 	y: 0
 };
 
-var WEBVR = require('./lib/webvr.js')
-THREE.OrbitControls = require('./lib/OrbitControls.js');
-THREE.FirstPersonControls = require('./lib/FirstPersonControls.js');
+
 THREE.VRControls = require('./lib/vrControls.js');
 THREE.VREffect = require('./lib/vrEffects.js');
+var WEBVR = require('./lib/webvr.js');
 
 window.scene = null;
 window.stats = null;
@@ -91,8 +89,8 @@ var init = function() {
 		var cubeGeom = new THREE.BoxGeometry(0.001, 0.001, 0.001);
 		var cubeMaterial = new THREE.MeshBasicMaterial({
 			color: '#4488BB',
-			transparent: true,
-			opacity: 0.0});
+			transparent: false,
+			opacity: 0.7});
 		steeringCube = new THREE.Mesh(cubeGeom, cubeMaterial);
 		steeringCube.position.set(startPosition.x, startPosition.y, startPosition.z);
 		scene.add(steeringCube);
@@ -111,15 +109,7 @@ var init = function() {
 	// STAR DATA
 	stars.init(scene, universeScale);
 	lspm.init(scene, universeScale);
-	//orbits.init(scene, universeScale);
 	constll.init(scene, universeScale);
-
-	// CONTROLS
-	// controls = new THREE.OrbitControls( camera, renderer.domElement );
-	//controls = new THREE.FirstPersonControls(camera);
-	//controls.movementSpeed = 1;
-	//controls.lookSpeed = 0.125;
-	//controls.lookVertical = true;
 
 	// STATS
 	stats = new Stats();
@@ -135,7 +125,6 @@ var init = function() {
 					document.body.appendChild( WEBVR.getButton( display, renderer.domElement ) );
 	} );
 	window.addEventListener( 'resize', onWindowResize, false );
-
 };
 
 function animate() {
@@ -197,15 +186,3 @@ if ( WEBVR.isAvailable() === false ) {
 init();
 console.log("rendering");
 animate();
-
-
-/*
-$('#button-data').on('click', function() {
-	$('#menu-search').removeClass('active');
-	$('#menu-data').toggleClass('active');
-});
-$('#button-search').on('click', function() {
-	$('#menu-data').removeClass('active');
-	$('#menu-search').toggleClass('active');
-});
-*/

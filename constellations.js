@@ -8,7 +8,7 @@ var Constll = {
 		var particles, geometry, materials = [], parameters, i, color, size;
 
 		var material = new THREE.LineBasicMaterial({
-			color: '#5566ee'
+			color: '#112255'
 		});
 
 		// Opera 8.0+, Firefox, Chrome, Safari
@@ -32,7 +32,7 @@ var Constll = {
 					if(con.hasOwnProperty('name')){
 						name = con.name;
 					}
-					
+
 					var description = descriptions.getForConstellation(name);
 					if( description ){
 						description_str = "";
@@ -44,23 +44,23 @@ var Constll = {
 						description = null;
 					}
 					labels.addLabel(pos, name, description, "constellation");
-					
-					
-					
+
+
+
 					// need to draw the label here
 					starArrs.forEach(function(stars){
 						var geometry = new THREE.Geometry();
-						
+
 						stars.forEach(function(star){
 							geometry.vertices.push(
 								new THREE.Vector3(star.x * scaleFactor, star.y * scaleFactor, star.z * scaleFactor)
 							);
 						});
-						
+
 						var line = new THREE.Line( geometry, material );
 						scene.add( line );
 					});
-					
+
 				});
 
 				console.log("Constellations Drawn");
